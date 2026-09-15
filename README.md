@@ -4,6 +4,11 @@
 
 自然语言理解使用受限句式的模拟解析器，**没有调用大模型，也不需要 API Key**。重点是验证业务模型如何决定计算过程。金额为虚构的人民币元，估值日固定使用示例日期 2026-09-14。
 
+## 项目文档
+
+- [双人开发分工与前置准备](docs/developer-collaboration.md)：研究方向、接口约定、固收数据准备、验收样例和 AI Coding 协作机制。
+- [与 Palantir Ontology 的差距及演进建议](docs/palantir-ontology-comparison.md)：当前定位、六类差距、固收业务示例和阶段性建设建议。
+
 ## 运行
 
 需要 Python 3.10+、Docker Desktop 已启动、本机已有 `mysql:8.4` 镜像。首次运行会建立 Python 虚拟环境并安装 PyMySQL。
