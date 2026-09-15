@@ -1,0 +1,9 @@
+{
+  "object": "portfolio",
+  "scope": "fixed_income",
+  "as_of_date": "2026-09-14",
+  "metric": "credit_bond_nav_ratio",
+  "operator": "gt",
+  "threshold": 0.10,
+  "select": ["portfolio_id", "name", "numerator", "denominator", "ratio"]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "fixed_income_demo",
+  "version": "1.0",
+  "description": "固收问数最小模型：业务对象、数据映射、关系、指标及质量规则。金额均为人民币元。",
+  "defaults": {
+    "valuation_date": "2026-09-14",
+    "credit_ratio_metric": "credit_bond_nav_ratio"
+  },
+  "sources": {
+    "portfolio": {
+      "table": "portfolios",
+      "grain": ["portfolio_id"],
+      "fields": {"portfolio_id": "portfolio_id", "name": "name", "business_type": "business_type", "access_group": "access_group"}
+    },
+    "security": {
+      "table": "securities",
+      "grain": ["security_id"],
+      "fields": {"security_id": "security_id", "name": "name", "asset_class": "asset_class"}
+    },
+    "holding": {
+      "table": "holdings",
+      "grain": ["holding_id"],
+      "description": "同一组合、日期、证券可以在不同账户有多条持仓，不按证券去重。",
+      "fields": {"holding_id": "holding_id", "portfolio_id": "portfolio_id", "security_id": "security_id", "account_id": "account_id", "valuation_date": "valuation_date", "market_value": "market_value_cny"}
+    },
+    "valuation": {
+      "table": "portfolio_valuations",
+      "grain": ["portfolio_id", "valuation_date"],
+      "fields": {"portfolio_id": "portfolio_id", "valuation_date": "valuation_date", "nav": "net_asset_value_cny", "holdings_complete": "holdings_complete"}
+    }
+  },
+  "objects": {
+    "portfolio": {"label": "投资组合", "source": "portfolio", "key": "portfolio_id"},
+    "security": {"label": "证券", "source": "security", "key": "security_id"},
+    "holding": {"label": "持仓快照", "source": "holding", "key": "holding_id"},
+    "valuation": {"label": "组合估值快照", "source": "valuation", "key": ["portfolio_id", "valuation_date"]}
+  },
+  "relationships": {
+    "holding_portfolio": {
+      "from": "holding", "to": "portfolio", "cardinality": "many_to_one",
+      "keys": [{"from": "portfolio_id", "to": "portfolio_id"}]
+    },
+    "holding_security": {
+      "from": "holding", "to": "security", "cardinality": "many_to_one",
+      "keys": [{"from": "security_id", "to": "security_id"}]
+    },
+    "valuation_portfolio": {
+      "from": "valuation", "to": "portfolio", "cardinality": "many_to_one",
+      "keys": [{"from": "portfolio_id", "to": "portfolio_id"}]
+    }
+  },
+  "scopes": {
+    "fixed_income": {"label": "固收组合", "object": "portfolio", "filters": [{"field": "business_type", "op": "eq", "value": "FIXED_INCOME"}]}
+  },
+  "access_policy": {"source": "portfolio", "field": "access_group", "description": "由执行端注入用户组；查询意图不能指定或覆盖权限。"},
+  "measures": {
+    "credit_bond_market_value": {
+      "label": "信用债市值", "kind": "sum", "source": "holding", "field": "market_value",
+      "unit": "CNY", "group_by": ["portfolio_id", "valuation_date"], "date_field": "valuation_date",
+      "filters": [{"relationship": "holding_security", "field": "asset_class", "op": "eq", "value": "CREDIT_BOND"}]
+    },
+    "portfolio_nav": {
+      "label": "组合净资产", "kind": "snapshot", "source": "valuation", "field": "nav",
+      "unit": "CNY", "group_by": ["portfolio_id", "valuation_date"], "date_field": "valuation_date",
+      "filters": []
+    }
+  },
+  "metrics": {
+    "credit_bond_nav_ratio": {
+      "label": "信用债市值占净资产比例", "version": "v1", "kind": "ratio", "object": "portfolio",
+      "aliases": ["信用债占净资产比例", "信用债市值占净资产比例", "信用债占比"],
+      "numerator": "credit_bond_market_value", "denominator": "portfolio_nav",
+      "grain": ["portfolio_id", "valuation_date"], "join_key": "portfolio_id", "unit": "ratio",
+      "coverage": {"source": "valuation", "field": "holdings_complete", "required_value": true},
+      "missing_numerator": "zero_when_complete", "valid_denominator": "positive",
+      "classification": "demo_static_v1：securities.asset_class，示例固定分类，不支持历史分类变化或穿透。",
+      "valuation_basis": "示例持仓市值，统一人民币元；生产环境需由业务确认是否含应计利息等口径。",
+      "owner": "示例固收业务负责人"
+    }
+  }
+}
